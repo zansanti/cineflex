@@ -56,7 +56,8 @@ const Seat = styled.button`
   &.unavailable {
     background-color: #008080; /* Azulado */
     color: #008080; /* Mesma cor que o fundo para esconder o número */
-    cursor: not-allowed;
+    cursor: not-allowed; /* Cursor não permitido para assentos indisponíveis */
+    pointer-events: all; /* Permite que o evento de clique seja capturado */
   }
 `;
 
@@ -94,6 +95,7 @@ const SeatSelection = () => {
   const [movieTitle, setMovieTitle] = useState('');
   const [sessionDate, setSessionDate] = useState('');
   const [sessionTime, setSessionTime] = useState('');
+  const [message, setMessage] = useState(''); // Estado para a mensagem de aviso
 
   useEffect(() => {
     const fetchSeats = async () => {
@@ -113,32 +115,50 @@ const SeatSelection = () => {
 
   const handleSeatClick = (seat) => {
     if (seat.isAvailable) {
+      // Se o assento está disponível, permite selecionar
       if (selectedSeats.includes(seat.id)) {
         setSelectedSeats(selectedSeats.filter((s) => s !== seat.id));
+        setMessage(''); // Limpa a mensagem
       } else {
         setSelectedSeats([...selectedSeats, seat.id]);
+        setMessage(''); // Limpa a mensagem
       }
     } else {
-      alert("Esse assento não está disponível.");
+      // Se o assento não está disponível, exibe a mensagem
+      setMessage("Esse assento não está disponível."); 
     }
   };
 
   const handleReserve = async () => {
+    // Verifica se algum assento foi selecionado
+    if (selectedSeats.length === 0) {
+      alert('Por favor, selecione pelo menos um assento.');
+      return; // Impede a navegação
+    }
+
+    // Verifica se o nome e o CPF estão preenchidos
+    if (buyerName.trim() === '' || buyerCpf.trim() === '') {
+      alert('Por favor, preencha o nome e o CPF.');
+      return; // Impede a navegação
+    }
+
     const reservationData = {
-      ids: selectedSeats, // Enviando os IDs dos assentos selecionados
-      name: buyerName,    // Nome do comprador
-      cpf: buyerCpf,      // CPF do comprador
+      ids: selectedSeats,
+      name: buyerName,
+      cpf: buyerCpf,
     };
 
     try {
-      // Envia a reserva para o servidor
       await axios.post('https://mock-api.driven.com.br/api/v8/cineflex/seats/book-many', reservationData);
 
       // Navega para a página de confirmação
       navigate('/confirmation', {
         state: { 
           movieDetails: { title: movieTitle, date: sessionDate, time: sessionTime },
-          seats: selectedSeats, 
+          seats: selectedSeats.map(seatId => {
+            const seat = seats.find(s => s.id === seatId);
+            return seat ? seat.name : '';
+          }), 
           buyer: { name: buyerName, cpf: buyerCpf },
         },
       });
@@ -147,19 +167,19 @@ const SeatSelection = () => {
       alert('Ocorreu um erro ao fazer a reserva. Tente novamente.');
     }
   };
-
   return (
     <Container>
       <Title>Cineflex</Title>
       <h2>Selecione o(s) assento(s)</h2>
+
+      {message && <p style={{ color: 'red' }}>{message}</p>} {/* Mensagem de aviso */}
 
       <SeatsContainer>
         {seats.map((seat) => (
           <Seat
             key={seat.id}
             className={`${seat.isAvailable ? (selectedSeats.includes(seat.id) ? 'selected' : 'available') : 'unavailable'}`}
-            onClick={() => handleSeatClick(seat)}
-            disabled={!seat.isAvailable}
+            onClick={() => handleSeatClick(seat)} // Chama a função ao clicar
           >
             {seat.name}
           </Seat>

@@ -48,7 +48,7 @@ const Confirmation = () => {
       <Section>
         <h2>Ingressos</h2>
         {seats.map(seat => (
-          <p key={seat}>Assento {seat}</p>
+          <p key={seat}>Assento {seat}</p> // Aqui deve mostrar o número do assento
         ))}
       </Section>
       <Section>
